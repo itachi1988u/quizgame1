@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduQuiz Multiplayer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #a8c0ff, #3f2b96);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 20px;
+            border-radius: 15px;
+            background-color: blur(10px);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .player-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .player {
+            background: #ffffffd7;
+            padding: 15px;
+            border-radius: 10px;
+            width: 48%;
+            text-align: center;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .question {
+            font-size: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.25s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        button:hover {
+            background: #005fcc;
+            transform: scale(1.07);
+        }
+
+        .scoreboard {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #nameInputBox {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #nameInputBox input {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        #nameInputBox button {
+            margin-top: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="gameBox">
+        <h1>EduQuiz Multiplayer</h1>
+
+        <!-- Ismlar kiritish -->
+        <div id="nameInputBox">
+            <input type="text" id="name1" placeholder="Player 1 ismi">
+            <input type="text" id="name2" placeholder="Player 2 ismi">
+            <br>
+            <button id="startBtn">O‘yinni boshlash</button>
+        </div>
+
+        <div class="player-box" style="display:none;">
+            <div class="player">Player 1: <span id="p1">0</span></div>
+            <div class="player">Player 2: <span id="p2">0</span></div>
+        </div>
+
+        <div class="question" id="question" style="display:none;">Savol yuklanmoqda...</div>
+        <div class="answers" id="answers" style="display:none;"></div>
+        <div class="scoreboard" id="msg"></div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "HTML nimani anglatadi?", a: ["HyperText Markup Language", "HighText Machine Logic", "Home Tool Markup Language", "Hyper Transfer Markup Level"], c: 0 },
+            { q: "CSS nima?", a: ["Style beruvchi kod", "Rasmlar formati", "Audio tizimi", "JavaScript kutubxonasi"], c: 0 },
+            { q: "HTMLda eng katta sarlavha tegi qaysi?", a: ["<h6>", "<header>", "<h1>", "<big>"], c: 2 },
+            { q: "CSS fon rangini o‘zgartirish qaysi?", a: ["bg", "background-color", "color-bg", "bg-change"], c: 1 },
+            { q: "HTML link tegi qaysi?", a: ["<a>", "<url>", "<link>", "<go>"], c: 0 },
+            { q: "CSSda matn rangini o‘zgartirish qaysi?", a: ["font-color", "color", "paint", "text-color"], c: 1 },
+            { q: "HTML ro‘yxat uchun teg?", a: ["<ul>", "<br>", "<hr>", "<p>"], c: 0 },
+            { q: "HTML rasm tegi qaysi?", a: ["<img>", "<photo>", "<pic>", "<jpg>"], c: 0 },
+            { q: "CSS qoida sintaksisi qanday?", a: ["selector {property: value;}", "{value: property}", "style = value", "select:value;"], c: 0 },
+            { q: "HTMLda matn qalin qilish uchun teg?", a: ["<b>", "<strong>", "<bold>", "<em>"], c: 1 }
+        ];
+
+        let qi = 0;
+        let p1 = 0, p2 = 0;
+        let turn = 1;
+        let name1 = "Player 1", name2 = "Player 2";
+
+        const questionEl = document.getElementById("question");
+        const answersEl = document.getElementById("answers");
+        const msg = document.getElementById("msg");
+        const playerBox = document.querySelector(".player-box");
+
+        document.getElementById("startBtn").onclick = () => {
+            const n1 = document.getElementById("name1").value.trim();
+            const n2 = document.getElementById("name2").value.trim();
+            if (n1) name1 = n1;
+            if (n2) name2 = n2;
+
+            playerBox.style.display = "flex";
+            playerBox.children[0].innerHTML = `${name1}: <span id="p1">0</span>`;
+            playerBox.children[1].innerHTML = `${name2}: <span id="p2">0</span>`;
+
+            questionEl.style.display = "block";
+            answersEl.style.display = "grid";
+            document.getElementById("nameInputBox").style.display = "none";
+
+            load();
+        }
+
+        function load() {
+            let q = questions[qi];
+            questionEl.textContent = q.q;
+            answersEl.innerHTML = "";
+
+            q.a.forEach((t, i) => {
+                let b = document.createElement("button");
+                b.textContent = t;
+                b.onclick = () => check(i);
+                answersEl.appendChild(b);
+            });
+
+            msg.textContent = `Navbat: ${turn === 1 ? name1 : name2}`;
+        }
+
+        function check(i) {
+            if (i === questions[qi].c) {
+                if (turn === 1) p1++;
+                else p2++;
+            }
+
+            document.getElementById("p1").textContent = p1;
+            document.getElementById("p2").textContent = p2;
+
+            turn = turn === 1 ? 2 : 1;
+            qi++;
+
+            if (qi < questions.length) load();
+            else finish();
+        }
+
+        function confetti() {
+            const box = document.getElementById("gameBox");
+            for (let i = 0; i < 80; i++) {
+                let c = document.createElement("div");
+                c.style.position = "absolute";
+                c.style.width = "8px";
+                c.style.height = "8px";
+                c.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                c.style.top = "-10px";
+                c.style.left = Math.random() * 100 + "%";
+                c.style.opacity = ".9";
+                c.style.borderRadius = "2px";
+                c.style.transform = `rotate(${Math.random() * 360}deg)`;
+                c.style.transition = "transform 2s ease, top 2s ease";
+
+                box.appendChild(c);
+
+                setTimeout(() => {
+                    c.style.top = "110%";
+                    c.style.transform = "translateY(100px) rotate(720deg)";
+                }, 10);
+
+                setTimeout(() => c.remove(), 2500);
+            }
+        }
+
+        function finish() {
+            questionEl.textContent = "O‘yin tugadi!";
+            answersEl.innerHTML = "";
+
+            if (p1 > p2) {
+                msg.textContent = `🎉 ${name1} g‘olib!`;
+                confetti();
+            }
+            else if (p2 > p1) {
+                msg.textContent = `🎉 ${name2} g‘olib!`;
+                confetti();
+            }
+            else {
+                msg.textContent = "⭐ Durrang!";
+                confetti();
+            }
+        }
+    </script>
+</body>
+
+</html>
